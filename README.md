@@ -13,7 +13,18 @@ Microfone ─► corte de silêncio ─► Whisper (Groq) ─► regras do usuá
 - **Modo local (BYOK):** usa a sua chave Groq direto do desktop. Sem conta, sem servidor.
 - **Modo nuvem (opcional):** o desktop fala com as Edge Functions em `supabase/functions/` (transcrição, cobrança Stripe, planos). As chaves de provedores ficam no servidor.
 
-## Rodando (modo local)
+## Instalar (Windows 10/11)
+
+1. Baixe o **`FALAI-Setup-1.5.6.exe`** em [Releases](https://github.com/m4rk2077/falai-desktop/releases/latest) e instale (não precisa de admin).
+2. Crie uma chave **grátis** em [console.groq.com/keys](https://console.groq.com/keys).
+3. Abra o FALAI, cole a chave no primeiro passo (ou em **Configurações → Transcrição**).
+4. Segure `Ctrl+Shift`, fale, solte.
+
+> O instalador ainda não é assinado digitalmente: o Windows SmartScreen pode avisar. Clique em **Mais informações → Executar assim mesmo**, ou compile você mesmo (abaixo).
+
+O custo é o do seu uso no Groq — em uso pessoal intenso, centavos de dólar por mês.
+
+## Rodando do código (modo local)
 
 ```bash
 python -m venv .venv && .venv\Scripts\activate
@@ -26,7 +37,7 @@ Hotkey padrão: `Ctrl+Shift` (push-to-talk). Configurações ficam em `%APPDATA%
 
 ## Precisão
 
-- **Vocabulário pessoal** (Configurações): nomes, marcas e termos que você fala. Vai para o Whisper e para o revisor.
+- **Vocabulário pessoal** (Configurações → Transcrição): nomes, marcas e termos que você fala. Vai para o Whisper e para o revisor.
 - **`%APPDATA%\FALAI\replacements.txt`**: regras fixas `errado => certo` (ou `re: <regex> => certo`), aplicadas sem LLM.
 - **Contexto no revisor**: os ditados dos últimos 15 min vão ao revisor como referência (`dictation_context`). Não vão ao Whisper: nos testes ele passou a copiar o texto anterior.
 - **Diagnóstico** (opcional): `save_debug_audio: true` guarda os últimos 50 áudios + textos em `%APPDATA%\FALAI\debug_audio\` para medir acurácia na sua voz. Nada sai do seu PC.

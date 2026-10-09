@@ -418,11 +418,31 @@ class Settings:
             )
         return api_key
     
+    GROQ_SECRET_TARGET = "FALAI/groq_api_key"
+
     def get_groq_api_key(self) -> str:
-        """Get Groq API key from environment"""
+        """Groq key from the environment/.env, else the one saved (encrypted) via Settings."""
         api_key = os.getenv("GROQ_API_KEY")
-        # Don't raise error here, as it might not be configured yet
-        return api_key or ""
+        if api_key:
+            return api_key
+        try:
+            from src.security.secure_store import SecureStore
+
+            return SecureStore().get_secret(self.GROQ_SECRET_TARGET) or ""
+        except Exception:
+            logger.warning("Could not read stored Groq key", exc_info=True)
+            return ""
+
+    def set_groq_api_key(self, api_key: str) -> None:
+        """Persist the user's Groq key encrypted (DPAPI on Windows); empty removes it."""
+        from src.security.secure_store import SecureStore
+
+        api_key = (api_key or "").strip()
+        SecureStore().set_secret(self.GROQ_SECRET_TARGET, api_key)
+        if api_key:
+            os.environ["GROQ_API_KEY"] = api_key
+        else:
+            os.environ.pop("GROQ_API_KEY", None)
     
     def get_all(self) -> Dict[str, Any]:
         """Get all settings"""

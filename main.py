@@ -1895,6 +1895,16 @@ class FalaiApp:
                 mode = self.settings.get("activation_mode", "push_to_talk")
                 if self._main_window:
                     self._main_window.update_mode_info(mode, hotkey)
+            if changed & {"groq_api_key", "personal_vocabulary"}:
+                # Recreate Groq clients so the new key/vocabulary take effect immediately.
+                self.transcriber = None
+                self._refresh_transcription_backend()
+                self._refresh_corrector()
+                if self._main_window:
+                    if self.transcription_mode == "none":
+                        self._main_window.set_error_status(self._transcription_not_ready_message())
+                    else:
+                        self._main_window.set_ready_status()
             if "auth_session" in changed:
                 # Login completed; keep current in-memory services/tokens.
                 self._refresh_transcription_backend()

@@ -579,6 +579,12 @@ class MainWindow(QMainWindow):
                 return "Informe seu e-mail."
 
             if local_mode or self._local_runtime:
+                groq_key = (auth_payload.get("groq_api_key") or "").strip()
+                if groq_key:
+                    try:
+                        self.settings.set_groq_api_key(groq_key)
+                    except Exception:
+                        return "Não foi possível salvar a chave Groq neste PC."
                 self.settings.set("auth_token", f"local:{email.lower()}")
                 self.settings.set("user_email", email if remember_me else "")
                 self.settings.set("remember_me", remember_me)

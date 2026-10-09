@@ -1155,6 +1155,7 @@ class SettingsPage(QWidget):
 
         account_card.layout.addWidget(account_row)
         layout.addWidget(account_card)
+        layout.addWidget(self._build_transcription_card())
 
         system_card = Card()
         system_card.setObjectName("settingsSection")
@@ -1636,6 +1637,96 @@ class SettingsPage(QWidget):
                     self._update_status_label.setText(f"Não consegui verificar atualizações.{suffix}")
                 else:
                     self._update_status_label.setText(f"Clique em Verificar para checar atualizações.{suffix}")
+
+    def _build_transcription_card(self) -> QWidget:
+        """Groq key (BYOK) and personal vocabulary, editable without touching files."""
+        card = Card()
+        card.setObjectName("settingsSection")
+        card.layout.setContentsMargins(0, 4, 0, 6)
+        card.layout.setSpacing(4)
+        card.layout.addWidget(SectionHeader("TRANSCRIÇÃO"))
+
+        def field_row(title_text: str, hint_text: str, field: QLineEdit, button: QPushButton, last: bool) -> QWidget:
+            row = QWidget()
+            row.setObjectName("settingRow")
+            row.setProperty("last", last)
+            row.setAttribute(Qt.WA_StyledBackground, True)
+            col = QVBoxLayout(row)
+            col.setContentsMargins(0, 4, 0, 4)
+            col.setSpacing(4)
+            title = QLabel(title_text)
+            title.setObjectName("settingTitle")
+            hint = QLabel(hint_text)
+            hint.setObjectName("mutedLabel")
+            hint.setWordWrap(True)
+            hint.setOpenExternalLinks(True)
+            col.addWidget(title)
+            col.addWidget(hint)
+            line = QHBoxLayout()
+            line.setSpacing(8)
+            field.setMinimumHeight(36)
+            line.addWidget(field, 1)
+            button.setObjectName("secondaryButton")
+            button.setMinimumHeight(36)
+            line.addWidget(button)
+            col.addLayout(line)
+            return row
+
+        self._groq_key_input = QLineEdit()
+        self._groq_key_input.setEchoMode(QLineEdit.Password)
+        has_key = bool(self.settings and self.settings.get_groq_api_key())
+        self._groq_key_input.setPlaceholderText("Chave salva ••••" if has_key else "gsk_...")
+        save_key = QPushButton("Salvar chave")
+        save_key.clicked.connect(self._on_save_groq_key)
+        card.layout.addWidget(field_row(
+            "Chave Groq",
+            'Grátis em <a href="https://console.groq.com/keys">console.groq.com/keys</a>. '
+            "Fica criptografada neste PC.",
+            self._groq_key_input, save_key, last=False,
+        ))
+
+        self._vocab_input = QLineEdit()
+        self._vocab_input.setPlaceholderText("Nomes e termos que você fala: Supabase, n8n, Hermes VPS...")
+        self._vocab_input.setText(self.settings.get("personal_vocabulary", "") if self.settings else "")
+        save_vocab = QPushButton("Salvar")
+        save_vocab.clicked.connect(self._on_save_vocabulary)
+        card.layout.addWidget(field_row(
+            "Vocabulário pessoal",
+            "Separados por vírgula. Ajuda a acertar nomes próprios, marcas e siglas.",
+            self._vocab_input, save_vocab, last=True,
+        ))
+
+        self._transcription_status = QLabel("")
+        self._transcription_status.setObjectName("mutedLabel")
+        self._transcription_status.setWordWrap(True)
+        card.layout.addWidget(self._transcription_status)
+        return card
+
+    def _on_save_groq_key(self):
+        if not self.settings:
+            return
+        key = self._groq_key_input.text().strip()
+        if key and not key.startswith("gsk_"):
+            self._transcription_status.setText("Essa não parece uma chave Groq (começa com gsk_).")
+            return
+        try:
+            self.settings.set_groq_api_key(key)
+        except Exception:
+            self._transcription_status.setText("Não foi possível salvar a chave neste PC.")
+            return
+        self._groq_key_input.clear()
+        self._groq_key_input.setPlaceholderText("Chave salva ••••" if key else "gsk_...")
+        self._transcription_status.setText("Chave salva. Já pode ditar." if key else "Chave removida.")
+        self.settings_saved.emit(["groq_api_key"])
+
+    def _on_save_vocabulary(self):
+        if not self.settings:
+            return
+        terms = [t.strip() for t in self._vocab_input.text().split(",") if t.strip()]
+        self.settings.set("personal_vocabulary", ", ".join(terms))
+        self.settings.save()
+        self._transcription_status.setText(f"Vocabulário salvo ({len(terms)} termos).")
+        self.settings_saved.emit(["personal_vocabulary"])
 
     def _apply_hotkey_pill_style(self):
         if not hasattr(self, "_hotkey_pill"):

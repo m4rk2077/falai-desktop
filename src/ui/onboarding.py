@@ -30,6 +30,18 @@ from src.config.runtime_mode import is_local_runtime
 ONBOARDING_VERSION = 2
 
 
+def _has_saved_groq_key() -> bool:
+    if os.getenv("GROQ_API_KEY"):
+        return True
+    try:
+        from src.config.settings import Settings
+        from src.security.secure_store import SecureStore
+
+        return bool(SecureStore().get_secret(Settings.GROQ_SECRET_TARGET))
+    except Exception:
+        return False
+
+
 class OnboardingDialog(QDialog):
     """Wizard modal compacto com 3 passos."""
 
@@ -59,7 +71,7 @@ class OnboardingDialog(QDialog):
 
         self._step_titles = [
             "Transcreva em segundos",
-            "Ative sua conta",
+            "Sua chave Groq" if self._local_runtime else "Ative sua conta",
             "Teste rapido",
         ]
         self._has_transcription = False
@@ -298,6 +310,22 @@ class OnboardingDialog(QDialog):
         form_layout.setContentsMargins(24, 24, 24, 24)
         form_layout.setSpacing(16)
 
+        # Local (BYOK) mode: the only thing we need is the user's own Groq key.
+        self.groq_key_input = QLineEdit()
+        self.groq_key_input.setEchoMode(QLineEdit.Password)
+        self.groq_key_input.setPlaceholderText("Cole sua chave Groq (gsk_...)")
+        groq_hint = QLabel(
+            'Crie grátis em <a href="https://console.groq.com/keys">console.groq.com/keys</a>. '
+            "A chave fica criptografada neste PC e só é usada para falar com o Groq."
+        )
+        groq_hint.setObjectName("onboardingHint")
+        groq_hint.setWordWrap(True)
+        groq_hint.setOpenExternalLinks(True)
+        form_layout.addWidget(self.groq_key_input)
+        form_layout.addWidget(groq_hint)
+        self.groq_key_input.setVisible(self._local_runtime)
+        groq_hint.setVisible(self._local_runtime)
+
         self.login_email = QLineEdit()
         self.login_email.setPlaceholderText("seu@email.com")
         self.login_email.setText(self._initial_email)
@@ -340,6 +368,12 @@ class OnboardingDialog(QDialog):
             local_row.addWidget(self.local_mode_btn)
             local_row.addStretch()
             form_layout.addLayout(local_row)
+
+        if self._local_runtime:
+            for w in (self.login_email, self.login_password, self.login_show_password,
+                      self.forgot_password_btn, self.login_remember, getattr(self, "local_mode_btn", None)):
+                if w is not None:
+                    w.setVisible(False)
 
         self.login_status = QLabel("")
         self.login_status.setObjectName("onboardingHint")
@@ -467,11 +501,20 @@ class OnboardingDialog(QDialog):
             self.login_status.setText("Modo local desativado.")
             return
         email = self.login_email.text().strip() or "owner@local"
+        groq_key = self.groq_key_input.text().strip()
+        if self._local_runtime:
+            if groq_key and not groq_key.startswith("gsk_"):
+                self.login_status.setText("Essa não parece uma chave Groq (começa com gsk_).")
+                return
+            if not groq_key and not _has_saved_groq_key():
+                self.login_status.setText("Cole sua chave Groq para continuar.")
+                return
         payload = {
             "email": email,
             "password": "local-auth",
             "remember_me": True,
             "local_mode": True,
+            "groq_api_key": groq_key,
         }
         if self._on_complete:
             try:
