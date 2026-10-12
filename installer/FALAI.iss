@@ -6,7 +6,7 @@
 ;    "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\FALAI.iss
 
 #define MyAppName "FALAI"
-#define MyAppVersion "1.5.6"
+#define MyAppVersion "1.5.7"
 #define MyAppExeName "FALAI.exe"
 
 [Setup]

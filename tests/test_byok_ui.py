@@ -89,3 +89,11 @@ def test_settings_page_saves_key_and_vocabulary(app, store, tmp_path):
     page._on_save_vocabulary()
     assert settings.get("personal_vocabulary") == "Supabase, n8n, Hermes VPS"
     assert emitted == [["groq_api_key"], ["personal_vocabulary"]]
+
+
+def test_settings_page_hides_account_card_in_local_mode(app, store, tmp_path, monkeypatch):
+    monkeypatch.setenv("FALAI_RUNTIME_MODE", "local")
+    from src.ui.pages.pages import SettingsPage
+
+    page = SettingsPage(Settings(config_file=tmp_path / "config.json"))
+    assert page._btn_logout.parentWidget().parentWidget().isHidden()

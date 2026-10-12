@@ -107,8 +107,12 @@ class GroqTranscriber:
             
         except Exception as e:
             logger.error("Error transcribing with Groq: %s", type(e).__name__, exc_info=True)
-            if getattr(e, "status_code", None) == 401 or type(e).__name__ == "AuthenticationError":
-                raise RuntimeError(
-                    "Chave Groq inválida. Atualize GROQ_API_KEY no .env e reinicie o FALAI."
-                ) from e
+            # Short messages: the floating bar shows only ~30 characters.
+            status = getattr(e, "status_code", None)
+            if status == 401 or type(e).__name__ == "AuthenticationError":
+                raise RuntimeError("Chave Groq inválida") from e
+            if status == 429 or type(e).__name__ == "RateLimitError":
+                raise RuntimeError("Limite do Groq: aguarde 1 min") from e
+            if type(e).__name__ in ("APIConnectionError", "APITimeoutError"):
+                raise RuntimeError("Sem conexão com o Groq") from e
             raise

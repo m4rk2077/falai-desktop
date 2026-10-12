@@ -19,6 +19,7 @@ from PySide6.QtGui import QFont, QPainter, QColor, QPen, QBrush, QPainterPath, Q
 from src.ui.components import Card, StatusPill, SectionHeader, SettingRow, SegmentedControl, StatusBadgeMini, HistoryPreviewItem, StatCard, KPIItem, KPIBand
 from src.utils.clipboard import ClipboardManager
 from src.config.plan_rules import effective_message_format_mode
+from src.config.runtime_mode import is_local_runtime
 from src.ui.theme import get_colors
 from src.audio.recorder import AudioRecorder
 
@@ -1155,6 +1156,8 @@ class SettingsPage(QWidget):
 
         account_card.layout.addWidget(account_row)
         layout.addWidget(account_card)
+        # Local (BYOK) mode has no account: the Groq key card replaces it.
+        account_card.setVisible(not is_local_runtime())
         layout.addWidget(self._build_transcription_card())
 
         system_card = Card()

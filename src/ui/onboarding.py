@@ -450,7 +450,7 @@ class OnboardingDialog(QDialog):
         if idx == 0:
             self.next_btn.setText("Continuar")
         elif idx == 1:
-            self.next_btn.setText("Entrar")
+            self.next_btn.setText("Continuar" if self._local_runtime else "Entrar")
         else:
             self.next_btn.setText("Finalizar")
 

@@ -1435,7 +1435,7 @@ class FalaiApp:
         except Exception:
             return "Migracao de seguranca pendente."
         if self._local_runtime:
-            return "GROQ_API_KEY não configurada para o modo local."
+            return "Chave Groq: veja Configurações"
         if self.supabase:
             return "Faça login para transcrever"
         return "Supabase não configurado (.env)"
@@ -1634,10 +1634,7 @@ class FalaiApp:
                 # Show a clear status message when transcription isn't ready.
                 self._refresh_transcription_backend()
                 if self.transcription_mode == "none":
-                    if self.supabase:
-                        self._main_window.set_error_status("Faça login para transcrever")
-                    else:
-                        self._main_window.set_error_status("Supabase não configurado (.env)")
+                    self._main_window.set_error_status(self._transcription_not_ready_message())
                 logger.debug("MainWindow fully configured")
             except Exception as e:
                 logger.error("Failed to create MainWindow", exc_info=True)
